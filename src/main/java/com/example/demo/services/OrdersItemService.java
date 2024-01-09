@@ -3,6 +3,7 @@ package com.example.demo.services;
 import com.example.demo.models.CouponDiscount;
 import com.example.demo.models.Orders;
 import com.example.demo.models.OrdersItem;
+import com.example.demo.repositories.CouponDiscountRepository;
 import com.example.demo.repositories.OrdersItemRepository;
 import com.example.demo.repositories.OrdersRepository;
 import com.example.demo.repositories.ProductRepository;
@@ -19,14 +20,16 @@ public class OrdersItemService {
     private final ProductRepository productRepository;
     private final CouponDiscountService couponDiscountService;
     private final CustomerService customerService;
+    private final CouponDiscountRepository couponDiscountRepository;
 
     @Autowired
-    public OrdersItemService(OrdersItemRepository ordersItemRepository, OrdersRepository ordersRepository, ProductRepository productRepository, CouponDiscountService couponDiscountService, CustomerService customerService) {
+    public OrdersItemService(OrdersItemRepository ordersItemRepository, OrdersRepository ordersRepository, ProductRepository productRepository, CouponDiscountService couponDiscountService, CustomerService customerService, CouponDiscountRepository couponDiscountRepository) {
         this.ordersItemRepository = ordersItemRepository;
         this.ordersRepository = ordersRepository;
         this.productRepository = productRepository;
         this.couponDiscountService = couponDiscountService;
         this.customerService = customerService;
+        this.couponDiscountRepository = couponDiscountRepository;
     }
     public List<OrdersItem> getAllOrdersItems() {
         return ordersItemRepository.findAll();
@@ -39,7 +42,7 @@ public class OrdersItemService {
         }
         else {
             Double discount = couponDiscountService.findByCouponCode(ordersItem.getOrder().getCoupon().getCouponCode()).getDiscountPercent();
-            return quantity * price * (1 - discount);
+            return quantity * price * (1 - discount*0.01);
         }
     }
     public Double calculateSubtotal (OrdersItem ordersItem) {
@@ -52,34 +55,41 @@ public class OrdersItemService {
         return order.isPresent();
     }
     public boolean isValidCoupon (OrdersItem ordersItem) {
-        CouponDiscount coupon = ordersItem.getOrder().getCoupon();
+        CouponDiscount coupon = ordersItem.getCoupon();
         if(couponDiscountService.isCouponCodeExist(coupon)){
             return couponDiscountService.isValidCoupon(coupon);
+        }else{
+            return false;
         }
-        return false;
     }
-//    public boolean isExistCustomer (OrdersItem ordersItem) {
-////        String customerName = ordersItem.getOrder().getCustomer().getCustomerName();
-//        String phoneNumber = ordersItem.getOrder().getCustomer().getPhoneNumber();
-////        return ordersRepository.findByCustomerNameAndPhoneNumber(customerName, phoneNumber).isPresent();
-//        return customerService.findByPhoneNumber(phoneNumber) != null;
-//    }
+
+    public List<OrdersItem> findItemsByOrderId(Integer order_id) {
+        return ordersItemRepository.findItemsByOrderId(order_id);
+    }
     public OrdersItem insertOrdersItem(OrdersItem newOrdersItem) {
+        // Check if the order ID is valid and exists
         if (!isValidOrdersId(newOrdersItem)) {
-            ordersRepository.save(newOrdersItem.getOrder());
-        }
-        if (isValidCoupon(newOrdersItem)) {
-            newOrdersItem.getOrder().setCoupon(couponDiscountService.findByCouponCode(newOrdersItem.getOrder().getCoupon().getCouponCode()));
+            throw new IllegalArgumentException("Invalid order ID: " + newOrdersItem.getOrder().getOrder_id());
         }
 
+        // If this OrdersItem has a coupon, then set the existing coupon for this OrdersItem
+        if (newOrdersItem.getCoupon() != null) {
+            Optional<CouponDiscount> existingCoupon = couponDiscountRepository.findByCouponCode(newOrdersItem.getCoupon().getCouponCode());
+            if (existingCoupon.isPresent()) {
+                // Associate the existing CouponDiscount with the OrdersItem
+                newOrdersItem.setCoupon(existingCoupon.get());
+            } else {
+                // If the coupon does not exist, set the coupon to null
+                newOrdersItem.setCoupon(null);
+            }
+        }
+
+        // Set customer and re-calculate subtotal and total for this OrdersItem
         newOrdersItem.getOrder().setCustomer(customerService.findByPhoneNumber(newOrdersItem.getOrder().getCustomer().getPhoneNumber()));
         newOrdersItem.setSubtotal(calculateSubtotal(newOrdersItem));
         newOrdersItem.setTotal(calculateTotal(newOrdersItem));
 
-//        return ordersItemRepository.save(newOrdersItem);
-        return newOrdersItem;
-    }
-    public List<OrdersItem> findItemsByOrderId(Integer order_id) {
-        return ordersItemRepository.findItemsByOrderId(order_id);
+        // Save the OrdersItem
+        return ordersItemRepository.save(newOrdersItem);
     }
 }

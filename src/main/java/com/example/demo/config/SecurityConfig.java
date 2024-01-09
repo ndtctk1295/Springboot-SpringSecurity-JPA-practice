@@ -56,17 +56,19 @@ public class SecurityConfig {
     @Bean
    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
       http
-              .cors((cors) -> cors
-                      .disable()
-
-              )
+//              .cors((cors) -> cors
+//                      .disable()
+//
+//              )
               .csrf((csrf) -> csrf.disable())
               .sessionManagement((session) -> session
-                      .sessionCreationPolicy(SessionCreationPolicy.ALWAYS)
+                      .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
               )
               .authorizeHttpRequests((requests) -> requests
 //                              .requestMatchers( new AntPathRequestMatcher("/**")).permitAll()
                               .requestMatchers( new AntPathRequestMatcher("/home")).permitAll()
+                              .requestMatchers( new AntPathRequestMatcher("/api/v1/products/**")).permitAll()
+                              .requestMatchers( new AntPathRequestMatcher("/api/v1/coupon/**")).permitAll() // need to adjust
                               .requestMatchers( new AntPathRequestMatcher("/api/v1/customers/**")).hasRole("ADMIN")
                               .requestMatchers( new AntPathRequestMatcher("/api/v1/public/user/**", "POST")).permitAll()
                               .requestMatchers( new AntPathRequestMatcher("/api/v1/admin/**", "POST")).permitAll()
@@ -89,16 +91,6 @@ public class SecurityConfig {
       return http.build();
    }
 
-//    @Autowired
-//    public void configureGlobal(AuthenticationManagerBuilder auth) throws Exception {
-//        auth.userDetailsService(userDetailsService)
-//                .passwordEncoder(passwordEncoder);
-//
-//        auth.inMemoryAuthentication()
-//                .withUser("user")
-//                .password(passwordEncoder.encode("password"))
-//                .authorities("ROLE_USER");
-//    }
 
     @Autowired
     public void configureGlobal(AuthenticationManagerBuilder auth) throws Exception {

@@ -93,6 +93,13 @@ public class OrdersItem {
         return coupon;
     }
 
+    public void setProduct(Product product) {
+        this.product = product;
+    }
+
+    public void setCoupon(CouponDiscount coupon) {
+        this.coupon = coupon;
+    }
 
     @Override
     public String toString() {

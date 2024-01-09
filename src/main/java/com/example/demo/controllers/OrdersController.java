@@ -23,8 +23,8 @@ public class OrdersController {
     @CrossOrigin()
     @GetMapping("/get-all")
     public ResponseEntity<ResponseObject> getAllOrders() {
-        ordersService.updateAllOrdersTotal();
-        ordersService.updateAllOrdersSubtotal();
+//        ordersService.updateAllOrdersTotal();
+//        ordersService.updateAllOrdersSubtotal();
         List<Orders> ordersList = ordersService.getAllOrders();
         return ResponseEntity.status(HttpStatus.OK).body(
                 new ResponseObject("success", "Query orders successfully", ordersList)
@@ -38,5 +38,19 @@ public class OrdersController {
         return ResponseEntity.status(HttpStatus.OK).body(
                 new ResponseObject("success", "Insert orders successfully", orders)
         );
+    }
+    @CrossOrigin()
+    @GetMapping("/by-id/{id}")
+    public ResponseEntity<ResponseObject> getOrderById(@PathVariable Integer id) {
+        Orders foundOrders = ordersService.getOrderById(id);
+        if (foundOrders != null) {
+            return ResponseEntity.status(HttpStatus.OK).body(
+                    new ResponseObject("success", "Query orders successfully", foundOrders)
+            );
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                    new ResponseObject("failed", "Cannot find orders with id: " + id, null)
+            );
+        }
     }
 }

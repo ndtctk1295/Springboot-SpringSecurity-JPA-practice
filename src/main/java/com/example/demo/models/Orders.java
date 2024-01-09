@@ -3,6 +3,7 @@ package com.example.demo.models;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 
+import java.util.Date;
 import java.util.List;
 
 @Entity
@@ -20,7 +21,10 @@ public class Orders {
     private Double total;
     @Column(name = "subtotal")
     private Double subtotal;
-
+    @Column(name = "discount_percent")
+    private Double discountPercent;
+    @Column(name = "date")
+    private Date date;
     @ManyToOne(cascade = CascadeType.MERGE)
     @JoinColumn(name = "coupon_id")
     private CouponDiscount coupon;
@@ -33,13 +37,31 @@ public class Orders {
     }
 
 
-    public Orders(Integer order_id, Customer customer, Double total, Double subtotal ,CouponDiscount coupon) {
+
+    public Orders(Integer order_id, Customer customer, Double total, Double subtotal, Double discountPercent, Date date, CouponDiscount coupon) {
         this.order_id = order_id;
         this.customer = customer;
         this.total = total;
         this.subtotal = subtotal;
+        this.discountPercent = discountPercent;
+        this.date = date;
         this.coupon = coupon;
+    }
 
+    public Date getDate() {
+        return date;
+    }
+
+    public void setDate(Date date) {
+        this.date = date;
+    }
+
+    public Double getDiscountPercent() {
+        return discountPercent;
+    }
+
+    public void setDiscountPercent(Double discountPercent) {
+        this.discountPercent = discountPercent;
     }
 
     public Integer getOrder_id() {

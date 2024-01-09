@@ -3,6 +3,8 @@ package com.example.demo.controllers.admin;
 import com.example.demo.models.Customer;
 import com.example.demo.models.ResponseObject;
 import com.example.demo.services.CustomerService;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -29,24 +31,15 @@ public class AdminLoginController {
     }
     @CrossOrigin()
     @PostMapping("/login")
-    public ResponseEntity<ResponseObject> loginAdmin(@RequestBody Customer customer) {
+    public ResponseEntity<ResponseObject> loginAdmin(@RequestBody Customer customer, HttpServletRequest request) {
 
-//        check AUTHORITY
-//        Authentication abc = SecurityContextHolder.getContext().getAuthentication();
-//        if (abc != null) {
-//            for (GrantedAuthority authority : abc.getAuthorities()) {
-//                System.out.println("Granted Authority: " + authority.getAuthority());
-//            }
-//        }else {
-//            System.out.println("Authentication is null");
-//        }
-//        END CHECK AUTHORITY
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(customer.getUsername(), customer.getPassword())
         );
         SecurityContextHolder.getContext().setAuthentication(authentication);
-//        HttpSession session = request.getSession(true);
-//        session.setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
+//        set a new session for each login
+        HttpSession session = request.getSession(true);
+        session.setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
         return ResponseEntity.status(HttpStatus.OK).body(
                 new ResponseObject("success", "Login success", customerService.findByUsername(customer.getUsername()))
         );
