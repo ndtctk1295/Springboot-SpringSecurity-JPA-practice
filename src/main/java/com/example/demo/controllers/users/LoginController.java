@@ -3,8 +3,8 @@ package com.example.demo.controllers.users;
 import com.example.demo.models.Customer;
 import com.example.demo.models.ResponseObject;
 import com.example.demo.services.CustomerService;
+import com.example.demo.services.JwtService;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,14 +21,15 @@ public class LoginController {
     private final PasswordEncoder passwordEncoder;
     private final CustomerService customerService;
     private final AuthenticationManager authenticationManager;
+    private final JwtService jwtService; // JWT Service
 
     @Autowired
-    public LoginController(PasswordEncoder passwordEncoder, CustomerService customerService, AuthenticationManager authenticationManager) {
+    public LoginController(PasswordEncoder passwordEncoder, CustomerService customerService, AuthenticationManager authenticationManager, JwtService jwtService) {
         this.passwordEncoder = passwordEncoder;
         this.customerService = customerService;
         this.authenticationManager = authenticationManager;
+        this.jwtService = jwtService; // Initialize JWT Service
     }
-
 
     @CrossOrigin
     @PostMapping("/login")
@@ -37,12 +38,13 @@ public class LoginController {
                 new UsernamePasswordAuthenticationToken(customer.getUsername(), customer.getPassword())
         );
         SecurityContextHolder.getContext().setAuthentication(authentication);
-        //        set a new session for each login
-        HttpSession session = request.getSession(true);
-        session.setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
+
+        // Generate JWT
+        String jwt = jwtService.generateAccessToken(authentication.getName());
+
+        // Return JWT in the response
         return ResponseEntity.status(HttpStatus.OK).body(
-                new ResponseObject("success", "Login success", customerService.findByUsername(customer.getUsername()))
+                new ResponseObject("success", "Login success", jwt)
         );
     }
-
 }
