@@ -37,13 +37,19 @@ public class OrdersItemService {
     public Double calculateTotal (OrdersItem ordersItem) {
         int quantity = ordersItem.getQuantity();
         Double price = productRepository.findById(ordersItem.getProduct().getId()).get().getPrice();
-        if(ordersItem.getOrder().getCoupon() == null) {
+        CouponDiscount coupon = ordersItem.getCoupon();
+        if(coupon == null) {
             return quantity * price;
         }
-        else {
-            Double discount = couponDiscountService.findByCouponCode(ordersItem.getOrder().getCoupon().getCouponCode()).getDiscountPercent();
-            return quantity * price * (1 - discount*0.01);
+        else{
+            if(isValidCoupon(ordersItem)){
+                return quantity * price * (1 - coupon.getDiscountPercent()/100);
+            }
+            else{
+                return quantity * price;
+            }
         }
+
     }
     public Double calculateSubtotal (OrdersItem ordersItem) {
         int quantity = ordersItem.getQuantity();
@@ -66,7 +72,7 @@ public class OrdersItemService {
     public List<OrdersItem> findItemsByOrderId(Integer order_id) {
         return ordersItemRepository.findItemsByOrderId(order_id);
     }
-    public OrdersItem insertOrdersItem(OrdersItem newOrdersItem) {
+    public OrdersItem insertOrdersItem(OrdersItem newOrdersItem, String phoneNumber) {
         // Check if the order ID is valid and exists
         if (!isValidOrdersId(newOrdersItem)) {
             throw new IllegalArgumentException("Invalid order ID: " + newOrdersItem.getOrder().getOrder_id());
@@ -85,7 +91,7 @@ public class OrdersItemService {
         }
 
         // Set customer and re-calculate subtotal and total for this OrdersItem
-        newOrdersItem.getOrder().setCustomer(customerService.findByPhoneNumber(newOrdersItem.getOrder().getCustomer().getPhoneNumber()));
+        newOrdersItem.getOrder().setCustomer(customerService.findByPhoneNumber(phoneNumber));
         newOrdersItem.setSubtotal(calculateSubtotal(newOrdersItem));
         newOrdersItem.setTotal(calculateTotal(newOrdersItem));
 

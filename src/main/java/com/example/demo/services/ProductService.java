@@ -48,7 +48,7 @@ public class ProductService {
 
         return existingProduct.map(product -> {
             product.setProductName(newProduct.getProductName());
-            product.setYearProduct(newProduct.getYearProduct());
+            product.setProductYear(newProduct.getProductYear());
             product.setPrice(newProduct.getPrice());
             product.setUrl(newProduct.getUrl());
             return repository.save(product);

@@ -31,7 +31,6 @@ public class CustomerDetailsService implements UserDetailsService {
         if (customer == null) {
             throw new UsernameNotFoundException("User not found");
         }
-        System.out.println(customer.getPassword());
         return new User(customer.getUsername(), customer.getPassword(), getAuthorities(customer));
     }
     private Collection<? extends GrantedAuthority> getAuthorities(Customer customer) {

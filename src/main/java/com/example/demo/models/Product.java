@@ -46,11 +46,11 @@ public class Product {
         this.productName = productName;
     }
 
-    public int getYearProduct() {
+    public int getProductYear() {
         return productYear;
     }
 
-    public void setYearProduct(int productYear) {
+    public void setProductYear(int productYear) {
         this.productYear = productYear;
     }
 

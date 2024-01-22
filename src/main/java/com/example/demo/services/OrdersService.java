@@ -133,7 +133,7 @@ public class OrdersService {
             return false;
         }
     }
-    public Orders insertOrders (Orders newOrder){
+    public Orders insertOrders (Orders newOrder, String phoneNumber){
         // If this Orders has coupon, then set coupon for this Orders
         if(newOrder.getCoupon() != null){
             Optional<CouponDiscount> coupon = couponDiscountRepository.findByCouponCode(newOrder.getCoupon().getCouponCode());
@@ -149,11 +149,12 @@ public class OrdersService {
                 newOrder.setDiscountPercent(null);
             }
         } else {
-            // Scenario 3: The CouponDiscount is null
-            // No action needed, as the CouponDiscount is already null
+            // Scenario 3: The Orders does not have a coupon
+            newOrder.setCoupon(null);
+            newOrder.setDiscountPercent(null);
         }
         newOrder.setDate(Date.valueOf(LocalDate.now()));
-        newOrder.setCustomer(customerRepository.findByPhoneNumber(newOrder.getCustomer().getPhoneNumber()));
+        newOrder.setCustomer(customerRepository.findByPhoneNumber(phoneNumber));
         return ordersRepository.save(newOrder);
     }
     public Orders getOrderById(Integer order_id) {

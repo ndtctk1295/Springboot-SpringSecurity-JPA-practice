@@ -24,11 +24,11 @@ public class SignupController {
     @PostMapping("/register")
     public ResponseEntity<ResponseObject> registerCustomer(@RequestBody Customer newCustomer){
 
-        if(customerService.findByUsername(newCustomer.getCustomerName()) != null){
-            return ResponseEntity.status(HttpStatus.OK).body(
+        if(customerService.findByUsername(newCustomer.getUsername()) != null){
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
                     new ResponseObject("failed", "Username already exist, please try to log in", null));
         } else if (customerService.findByPhoneNumber(newCustomer.getPhoneNumber()) != null){
-            return ResponseEntity.status(HttpStatus.OK).body(
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
                     new ResponseObject("failed", "Phone number already exist, please try a different phone number", null));
         }
 //        newCustomer.setPassword(passwordEncoder.encode(newCustomer.getPassword()));

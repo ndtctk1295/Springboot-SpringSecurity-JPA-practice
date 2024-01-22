@@ -10,13 +10,13 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/v1/admin")
-public class AdminSignUpController {
+@RequestMapping("/admin")
+public class AdminSignUpControllerAPI {
     @Autowired
     private final PasswordEncoder passwordEncoder;
     private final CustomerService customerService;
 
-    public AdminSignUpController(PasswordEncoder passwordEncoder, CustomerService customerService) {
+    public AdminSignUpControllerAPI(PasswordEncoder passwordEncoder, CustomerService customerService) {
         this.passwordEncoder = passwordEncoder;
         this.customerService = customerService;
     }

@@ -4,7 +4,11 @@ package com.example.demo.config;
 //import com.example.demo.handler.CustomAuthenticationSuccessHandler;
 
 import com.example.demo.filter.JwtAuthFilter;
+import com.example.demo.handler.CustomLogoutHandler;
+import com.example.demo.handler.CustomLogoutSuccessHandler;
+import com.example.demo.repositories.BlacklistTokenRepository;
 import com.example.demo.services.JwtService;
+import com.example.demo.services.TokenService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -20,6 +24,11 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.Arrays;
 
 
 @Configuration
@@ -29,11 +38,17 @@ public class SecurityConfig {
     private final UserDetailsService userDetailsService;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final BlacklistTokenRepository blacklistTokenRepository;
+    private final TokenService tokenService;
+//    private final RedisService redisService;
 
-    public SecurityConfig(UserDetailsService userDetailsService, PasswordEncoder passwordEncoder, JwtService jwtService) {
+    public SecurityConfig(UserDetailsService userDetailsService, PasswordEncoder passwordEncoder, JwtService jwtService, BlacklistTokenRepository blacklistTokenRepository, TokenService tokenService) {
         this.userDetailsService = userDetailsService;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
+
+        this.blacklistTokenRepository = blacklistTokenRepository;
+        this.tokenService = tokenService;
     }
 
     private static final String[] AUTH_WHITELIST = {"/", "/home", "/api/v1/**"};
@@ -50,32 +65,54 @@ public class SecurityConfig {
 
     @Bean
     public JwtAuthFilter jwtAuthFilter() {
-        return new JwtAuthFilter(jwtService, userDetailsService);
+        return new JwtAuthFilter(jwtService, userDetailsService, blacklistTokenRepository);
     }
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf((csrf) -> csrf.disable())
+                .cors((cors) -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement((session) -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS )
                 )
                 .authorizeHttpRequests((requests) -> requests
-                        .requestMatchers( new AntPathRequestMatcher("/home")).permitAll()
-                        .requestMatchers( new AntPathRequestMatcher("/api/v1/products/**")).permitAll()
-                        .requestMatchers( new AntPathRequestMatcher("/api/v1/coupon/**")).permitAll() // need to adjust
+                        .requestMatchers( new AntPathRequestMatcher("/js/**")).permitAll()
+                        .requestMatchers( new AntPathRequestMatcher("/api/v1/public/user/**")).permitAll()
+
+                        .requestMatchers( new AntPathRequestMatcher("/api/v1/products/**", "GET")).permitAll()
+                        .requestMatchers( new AntPathRequestMatcher("/api/v1/products/**")).hasRole("ADMIN")
+
                         .requestMatchers( new AntPathRequestMatcher("/api/v1/customers/**")).hasRole("ADMIN")
+
+                        .requestMatchers( new AntPathRequestMatcher("/api/v1/ordersItem/get-all")).hasRole("ADMIN")
+                        .requestMatchers( new AntPathRequestMatcher("/api/v1/orders/get-all")).hasRole("ADMIN")
+
+
+                        .requestMatchers( new AntPathRequestMatcher("/api/v1/coupon/get-all")).hasRole("ADMIN") // need to adjust
+                        .requestMatchers( new AntPathRequestMatcher("/api/v1/coupon/insert")).hasRole("ADMIN")
+                        .requestMatchers( new AntPathRequestMatcher("/api/v1/coupon/delete")).hasRole("ADMIN")
+
                         .requestMatchers( new AntPathRequestMatcher("/api/v1/public/user/**", "POST")).permitAll()
-                        .requestMatchers( new AntPathRequestMatcher("/api/v1/admin/**", "POST")).permitAll()
+
+                        .requestMatchers( new AntPathRequestMatcher("/api/v1/admin/**")).hasRole("ADMIN")
+                        .requestMatchers( new AntPathRequestMatcher("/admin/**")).permitAll()
+
                         .requestMatchers( new AntPathRequestMatcher("/api/v1/secured/**")).authenticated()
+
                         .anyRequest().authenticated()
                 )
                 .logout((logout) -> logout
-                        .logoutUrl("/api/v1/user/logout")
-                        .invalidateHttpSession(true)
-                        .clearAuthentication(true)
-                        .logoutSuccessUrl("/api/v1/products/get-all")
+                        .logoutUrl("/api/v1/public/user/logout")
+                        .addLogoutHandler(new CustomLogoutHandler(tokenService)) // add your custom logout handler
+                        .logoutSuccessHandler(new CustomLogoutSuccessHandler())
                         .permitAll()
                 )
+                .formLogin((formLogin) -> formLogin
+                        .loginPage("/internal-view/admin/login")
+//                        .loginProcessingUrl("/api/v1/admin/login")
+                        .defaultSuccessUrl("/dashboard.html", true) // Redirect to the admin dashboard upon successful login
+                        .failureUrl("/login?error=true") // Redirect back to the login page with an error
+                        .permitAll())
                 .addFilterBefore(jwtAuthFilter(), UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
@@ -84,5 +121,17 @@ public class SecurityConfig {
     public void configureGlobal(AuthenticationManagerBuilder auth) throws Exception {
         auth.userDetailsService(userDetailsService)
                 .passwordEncoder(passwordEncoder());
+    }
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000","http://localhost:3001" )); // Or your client's origin
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type"));
+        configuration.setAllowCredentials(true);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
     }
 }

@@ -1,26 +1,28 @@
 package com.example.demo.services;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.JwtException;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
+import com.example.demo.models.Customer;
+import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.security.Key;
 import java.util.Base64;
 import java.util.Date;
+
 @Service
 public class JwtService {
-//    public static final String SECRET = "5367566B59703373367639792F423F4528482B4D6251655468576D5A71347437";
-//    public static final int EXPIRATION_TIME = 1000 * 60 * 30;
-//    private Keys key;
+
     @Value("${jwt.secret}")
     private String secret;
+
     @Value("${jwt.expiration}")
     private long expirationTime;
+
+    @Autowired
+    private CustomerService customerService;
 
     private Key key;
 
@@ -30,8 +32,12 @@ public class JwtService {
     }
 
     public String generateAccessToken(String username) {
+        Customer customer = customerService.findByUsername(username);
+        String phoneNumber = customer.getPhoneNumber();
         return Jwts.builder()
                 .setSubject(username)
+                .claim("phoneNumber", phoneNumber)
+
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + expirationTime))
                 .signWith(key, SignatureAlgorithm.HS256)
@@ -39,15 +45,44 @@ public class JwtService {
     }
 
     public String generateRefreshToken(String username) {
-        // Typically, you might want a longer expiration time for refresh tokens
+        Customer customer = customerService.findByUsername(username);
+        String phoneNumber = customer.getPhoneNumber();
         long refreshExpirationTime = expirationTime * 10;
         return Jwts.builder()
                 .setSubject(username)
+                .claim("phoneNumber", phoneNumber)
+
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + refreshExpirationTime))
                 .signWith(key, SignatureAlgorithm.HS256)
                 .compact();
     }
+
+    // ... (other parts of the service)
+
+    public String refreshExpiredToken(String token) {
+        Claims claims = null;
+        try {
+            // Attempt to parse the token which will throw an ExpiredJwtException if the token is expired
+            Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token);
+        } catch (ExpiredJwtException e) {
+            // If the token is expired, we catch the exception and proceed
+            claims = e.getClaims();
+        } catch (JwtException | IllegalArgumentException e) {
+            // If there is any other JWT parsing error, return null
+            return null;
+        }
+        // If claims is null, it means token was not expired, so return null or handle accordingly
+        if (claims == null) {
+            return null;
+        }
+        // Extract the username from the expired token
+        String username = claims.getSubject();
+        // Generate a new refresh token for the username
+        return generateRefreshToken(username);
+    }
+
+// ... (other parts of the service)
 
     public Claims getClaimsFromToken(String token) {
         return Jwts.parserBuilder()
@@ -62,7 +97,6 @@ public class JwtService {
             Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token);
             return true;
         } catch (JwtException | IllegalArgumentException e) {
-            // Log the exception details
             return false;
         }
     }
@@ -71,5 +105,8 @@ public class JwtService {
         return getClaimsFromToken(token).getSubject();
     }
 
-
+    public String getPhoneNumberFromToken(String token) {
+        Claims claims = getClaimsFromToken(token);
+        return claims.get("phoneNumber", String.class);
+    }
 }
