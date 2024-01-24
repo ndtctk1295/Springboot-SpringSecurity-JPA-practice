@@ -51,7 +51,6 @@ public class JwtService {
         return Jwts.builder()
                 .setSubject(username)
                 .claim("phoneNumber", phoneNumber)
-
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + refreshExpirationTime))
                 .signWith(key, SignatureAlgorithm.HS256)

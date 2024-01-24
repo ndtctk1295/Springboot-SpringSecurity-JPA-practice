@@ -7,6 +7,7 @@ import com.example.demo.filter.JwtAuthFilter;
 import com.example.demo.handler.CustomLogoutHandler;
 import com.example.demo.handler.CustomLogoutSuccessHandler;
 import com.example.demo.repositories.BlacklistTokenRepository;
+import com.example.demo.services.CustomerDetailsService;
 import com.example.demo.services.JwtService;
 import com.example.demo.services.TokenService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,10 +16,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
-import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
@@ -32,18 +31,18 @@ import java.util.Arrays;
 
 
 @Configuration
-@EnableMethodSecurity
+//@EnableMethodSecurity
 public class SecurityConfig {
 
-    private final UserDetailsService userDetailsService;
+    private final CustomerDetailsService customerDetailsService;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final BlacklistTokenRepository blacklistTokenRepository;
     private final TokenService tokenService;
 //    private final RedisService redisService;
 
-    public SecurityConfig(UserDetailsService userDetailsService, PasswordEncoder passwordEncoder, JwtService jwtService, BlacklistTokenRepository blacklistTokenRepository, TokenService tokenService) {
-        this.userDetailsService = userDetailsService;
+    public SecurityConfig(CustomerDetailsService customerDetailsService, PasswordEncoder passwordEncoder, JwtService jwtService, BlacklistTokenRepository blacklistTokenRepository, TokenService tokenService) {
+        this.customerDetailsService = customerDetailsService;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
 
@@ -51,7 +50,6 @@ public class SecurityConfig {
         this.tokenService = tokenService;
     }
 
-    private static final String[] AUTH_WHITELIST = {"/", "/home", "/api/v1/**"};
 
     @Bean
     public static PasswordEncoder passwordEncoder() {
@@ -65,7 +63,7 @@ public class SecurityConfig {
 
     @Bean
     public JwtAuthFilter jwtAuthFilter() {
-        return new JwtAuthFilter(jwtService, userDetailsService, blacklistTokenRepository);
+        return new JwtAuthFilter(jwtService, customerDetailsService, blacklistTokenRepository);
     }
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -119,7 +117,7 @@ public class SecurityConfig {
 
     @Autowired
     public void configureGlobal(AuthenticationManagerBuilder auth) throws Exception {
-        auth.userDetailsService(userDetailsService)
+        auth.userDetailsService(customerDetailsService)
                 .passwordEncoder(passwordEncoder());
     }
     @Bean
