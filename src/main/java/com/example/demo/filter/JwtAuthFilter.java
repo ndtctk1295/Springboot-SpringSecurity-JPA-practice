@@ -45,7 +45,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 username = jwtService.getUsernameFromToken(jwt);
             }
             if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-//                SecurityContextHolder.getContext().getAuthentication() == null: check if the user is not authenticated yet (unnecessary because user already authenticated in login controller)
+//                SecurityContextHolder.getContext().getAuthentication() == null: check if the user is not authenticated yet (unnecessary because the user's authentication will always be null due to stateless session creation policy)
                 // Check if the token is blacklisted
                 BlacklistToken blacklistToken = blacklistTokenRepository.findByToken(jwt);
                 if (blacklistToken != null && !blacklistToken.isActive()) {
